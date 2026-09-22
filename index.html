@@ -236,10 +236,10 @@
     <div id="hud" class="hidden">
         <div class="hud-group"><span class="coin-icon">🪙 <span id="scoreVal">0000</span></span></div>
         <div class="hud-group"><span class="heart-icon">❤️ <span id="livesVal">3</span></span></div>
-        <div class="hud-group"><span class="level-icon"> LEVEL <span id="levelVal">1</span>/4</span></div>
+        <div class="hud-group"><span class="level-icon">📍 LEVEL <span id="levelVal">1</span>/4</span></div>
     </div>
 
-    <div id="bossLabel"> BOSS HP</div>
+    <div id="bossLabel">🐉 BOSS HP</div>
     <div id="bossHP"><div id="bossHPBar"></div></div>
 
     <div id="startScreen" class="screen">
@@ -252,9 +252,9 @@
             <span class="key">SPACE</span>, <span class="key">↑</span> или <span class="key">W</span> — Прыгать<br><br>
             <strong>4 Уровня:</strong><br>
             ☁️ Уровень 1: Прыгай по облакам вверх (выбирай правильное продолжение текста)<br>
-            🍄 Уровень 2: Побеждай грибов и собирай конфеты (переводи слова)<br>
-             Уровень 3: Забрасывай черепах в кольца (категории продуктов)<br>
-            👑 Уровень 4: Стреляй мухоморами в босса (грамматика)!
+            🍄 Уровень 2: Побеждай грибов и собирай конфеты (переводи новые слова!)<br>
+            🐢 Уровень 3: Забрасывай черепах в кольца (категории продуктов)<br>
+             Уровень 4: Стреляй мухоморами в босса (грамматика)!
         </div>
     </div>
 
@@ -388,20 +388,21 @@ const CLOUD_LEVEL_DATA = [
     { context: "...On Monday, you can try a delicious...", correct: "vegetarian or vegan meal. Meat-Free Monday is popular in many countries – in schools, homes and restaurants.", wrong: "smelly meal. Meat-Free Monday is popular in many countries – in schools, homes and restaurants." }
 ];
 
+// ===== НОВЫЙ МАССИВ СЛОВ ДЛЯ УРОВНЯ 2 =====
 const TRANSLATION_DATA = [
-    { en: "strawberries", ru: "клубника", options: ["клубника", "черника", "малина"] },
-    { en: "mushrooms", ru: "грибы", options: ["огурцы", "грибы", "помидоры"] },
-    { en: "orange juice", ru: "апельсиновый сок", options: ["яблочный сок", "вишнёвый сок", "апельсиновый сок"] },
-    { en: "carrots", ru: "морковь", options: ["картофель", "морковь", "лук"] },
-    { en: "cereal", ru: "хлопья/злаки", options: ["хлопья/злаки", "макароны", "рис"] },
-    { en: "rice", ru: "рис", options: ["рис", "гречка", "овсянка"] },
-    { en: "fish (salmon)", ru: "рыба (лосось)", options: ["мясо (говядина)", "рыба (лосось)", "курица"] },
-    { en: "cheese", ru: "сыр", options: ["масло", "молоко", "сыр"] },
-    { en: "milk", ru: "молоко", options: ["молоко", "кефир", "сливки"] },
-    { en: "eggs", ru: "яйца", options: ["яйца", "блины", "омлеты"] },
-    { en: "butter", ru: "масло", options: ["маргарин", "масло", "жир"] },
-    { en: "bread", ru: "хлеб", options: ["хлеб", "булка", "батон"] },
-    { en: "chicken", ru: "курица", options: ["индейка", "утка", "курица"] }
+    { en: "cereal", ru: "хлопья", options: ["хлопья", "каша", "мюсли", "овсянка"] },
+    { en: "salmon", ru: "лосось", options: ["лосось", "тунец", "форель", "треска"] },
+    { en: "coke", ru: "кола", options: ["кола", "лимонад", "пепси", "газировка"] },
+    { en: "soup", ru: "суп", options: ["суп", "бульон", "пюре", "рагу"] },
+    { en: "biscuit", ru: "печенье", options: ["печенье", "крекер", "вафля", "пряник"] },
+    { en: "cucumber", ru: "огурец", options: ["огурец", "кабачок", "тыква", "патиссон"] },
+    { en: "cabbage", ru: "капуста", options: ["капуста", "салат", "шпинат", "руккола"] },
+    { en: "garlic", ru: "чеснок", options: ["чеснок", "лук", "имбирь", "хрен"] },
+    { en: "pear", ru: "груша", options: ["груша", "яблоко", "слива", "айва"] },
+    { en: "grapes", ru: "виноград", options: ["виноград", "изюм", "смородина", "крыжовник"] },
+    { en: "omelette", ru: "омлет", options: ["омлет", "яичница", "фриттата", "скрэмбл"] },
+    { en: "fried eggs", ru: "яичница", options: ["яичница", "омлет", "варёное яйцо", "пашот"] },
+    { en: "onion", ru: "лук", options: ["лук", "чеснок", "шалот", "порей"] }
 ];
 
 const RING_CATEGORIES = ["Fruit", "Vegetables", "Meat/Fish", "Dairy products", "Drinks", "Other"];
@@ -493,6 +494,7 @@ function updateParticles() {
 }
 
 function drawParticles() {
+    ctx.globalCompositeOperation='source-over';
     for(let p of particles){
         ctx.globalAlpha=Math.max(0,p.life/40);
         ctx.fillStyle=p.color;
@@ -604,12 +606,28 @@ function setupLevel(lvl) {
             {x:2900,y:420,w:150}
         ];
         plats.forEach(p=>clouds.push({x:p.x,y:p.y,w:p.w,h:25,type:'platform',landed:true}));
+        
         const gPos=[250,550,850,1200,1500,1900,2300,2600,3000,3200];
+        
+        // 10 грибов = слова 0-9 (cereal, salmon, coke, soup, biscuit, cucumber, cabbage, garlic, pear, grapes)
         gPos.forEach((gx,i)=>{
-            goombas.push({x:gx,y:520-32,w:32,h:32,vx:-1.2,alive:true,squished:false,frame:0,timer:0,dataIdx:i%TRANSLATION_DATA.length});
+            goombas.push({
+                x:gx, y:520-32, w:32, h:32, vx:-1.2,
+                alive:true, squished:false, frame:0, timer:0,
+                dataIdx: i,
+                hasQuiz: true
+            });
         });
+        
+        // 8 конфет: первые 3 = слова 10-12 (omelette, fried eggs, onion), остальные 5 = бонус
         plats.forEach((p,i)=>{
-            candies.push({x:p.x+p.w/2-10,y:p.y-35,collected:false,dataIdx:(gPos.length+i)%TRANSLATION_DATA.length});
+            const wordIndex = gPos.length + i; // 10, 11, 12, 13, 14, 15, 16, 17
+            candies.push({
+                x:p.x+p.w/2-10, y:p.y-35,
+                collected:false,
+                dataIdx: wordIndex < TRANSLATION_DATA.length ? wordIndex : -1,
+                hasQuiz: wordIndex < TRANSLATION_DATA.length
+            });
         });
         camera.x=0;
     }
@@ -620,7 +638,6 @@ function setupLevel(lvl) {
         RING_CATEGORIES.forEach((cat,i)=>{
             rings.push({x:ringX+(i%3)*90,y:350+Math.floor(i/3)*100,w:70,h:70,label:cat,thrown:[]});
         });
-        // ИСПРАВЛЕНИЕ: создаём все 14 черепах
         let tIdx=0;
         for(let tx=50; tx<1200 && tIdx<TURTLES_DATA.length; tx+=80, tIdx++){
             turtles.push({x:tx,y:520-30,w:30,h:30,vx:0.8,alive:true,dataIdx:tIdx,grabbed:false,flying:false,fx:0,fy:0,targetRing:null,animT:0});
@@ -637,6 +654,7 @@ function setupLevel(lvl) {
         document.getElementById('bossLabel').style.display='block';
         updateBossHP();
         camera.x=0;
+        camera.y=0;
     }
     updateHUD();
 }
@@ -650,8 +668,8 @@ function updateBossHP(){
 const LEVEL_INTROS = [
     null,
     { title:"☁️ LEVEL 1: Cloud Jump", desc:"Марио должен допрыгать по облакам вверх! На каждом облачке — продолжение текста про Meat-Free Monday. Прыгай на облако, выбирай ПРАВИЛЬНОЕ продолжение. Если ошибёшься — упадёшь вниз и начнёшь сначала!" },
-    { title:" LEVEL 2: Mushroom Valley", desc:"Побеждай грибов, прыгая на них сверху, и собирай конфеты на платформах. Каждое существо даст тебе слово для перевода!" },
-    { title:"🐢 LEVEL 3: Turtle Ring Toss", desc:"Подходи к черепахам, хватай их (клавиша E рядом с ними) и бросай в правильное кольцо категории! Fruit, Vegetables, Meat/Fish, Dairy, Drinks, Other." },
+    { title:"🍄 LEVEL 2: Mushroom Valley", desc:"Побеждай грибов, прыгая на них сверху, и собирай конфеты на платформах. Переводи новые слова: cereal, salmon, coke, soup, biscuit, cucumber, cabbage, garlic, pear, grapes, omelette, fried eggs, onion!" },
+    { title:" LEVEL 3: Turtle Ring Toss", desc:"Подходи к черепахам, хватай их (клавиша E рядом с ними) и бросай в правильное кольцо категории! Fruit, Vegetables, Meat/Fish, Dairy, Drinks, Other." },
     { title:"👑 LEVEL 4: Boss Fight!", desc:"Босс атакует! Нажимай SPACE чтобы стрелять мухоморами. Перед каждым выстрелом выбери правильную грамматику. Попади 20 раз чтобы победить!" }
 ];
 
@@ -762,7 +780,13 @@ function updateLevel2(){
                 g.squished=true;
                 player.vy=JUMP_FORCE*0.5;
                 createParticles(g.x+g.w/2,g.y+g.h/2,'#8B4513',10);
-                openTransQuiz(g.dataIdx,'goomba');
+                if(g.hasQuiz){
+                    openTransQuiz(g.dataIdx,'goomba');
+                } else {
+                    gameState.score+=50;
+                    updateHUD();
+                    showDeathMessage("+50 BONUS!");
+                }
             } else {
                 player.invincible=60;
                 player.vx=player.x<g.x?-5:5;
@@ -786,7 +810,14 @@ function updateLevel2(){
         if(player.x<c.x+20&&player.x+player.w>c.x&&player.y<cy+20&&player.y+player.h>cy){
             c.collected=true;
             createParticles(c.x+10,cy+10,'#FFD700',8);
-            openTransQuiz(c.dataIdx,'candy');
+            if(c.hasQuiz){
+                openTransQuiz(c.dataIdx,'candy');
+            } else {
+                // Бонусная конфета
+                gameState.score+=50;
+                updateHUD();
+                showDeathMessage("+50 BONUS!");
+            }
         }
     }
 
@@ -817,7 +848,7 @@ function updateLevel3(){
     for(let t of turtles){
         if(!t.alive||t.grabbed||t.flying)continue;
         t.x+=t.vx;
-        if(t.x<10||t.x>1150)t.vx*=-1; // Увеличил диапазон
+        if(t.x<10||t.x>1150)t.vx*=-1;
     }
 
     if(keys['KeyE']){
@@ -861,7 +892,6 @@ function updateLevel3(){
     camera.x=0;camera.y=0;
 }
 
-// ИСПРАВЛЕНИЕ: используем реальное количество черепах
 function checkRingWin(){
     const totalThrown = rings.reduce((s,r) => s + r.thrown.length, 0);
     const totalTurtles = turtles.length;
@@ -1061,6 +1091,19 @@ function openCloudQuiz(textIdx,cloudObj){
 
 function openTransQuiz(dataIdx,source){
     gameState.paused=true;
+    
+    // Бонусная конфета без задания
+    if(dataIdx === -1){
+        document.getElementById('transType').textContent='🍬 BONUS CANDY';
+        document.getElementById('transWord').textContent='🎉';
+        document.getElementById('transFeedback').textContent='';
+        document.getElementById('transFeedback').className='feedbackMsg';
+        document.getElementById('transOpts').innerHTML='<div style="font-size:20px;color:#43b047;font-weight:bold;padding:20px;">+50 BONUS POINTS! 🎉</div>';
+        document.getElementById('transNext').style.display='inline-block';
+        document.getElementById('transQuiz').style.display='flex';
+        return;
+    }
+    
     const data=TRANSLATION_DATA[dataIdx];
     document.getElementById('transType').textContent=source==='goomba'?' GOOMBA WORD':'🍬 CANDY WORD';
     document.getElementById('transWord').textContent=data.en;
@@ -1386,6 +1429,8 @@ function drawBoss(){
     if(!boss)return;
     const bx=boss.x-camera.x,by=boss.y-camera.y;
 
+    ctx.save();
+    
     if(boss.hitFlash>0&&boss.hitFlash%4<2){
         ctx.globalCompositeOperation='source-atop';
     }
@@ -1424,6 +1469,9 @@ function drawBoss(){
     ctx.shadowColor='#000';ctx.shadowBlur=4;
     ctx.fillText('🐉 DRACO THE GLUTTON',bx+boss.w/2,by-30);
     ctx.shadowBlur=0;
+    
+    ctx.globalCompositeOperation='source-over';
+    ctx.restore();
 }
 
 function drawMushroomBullets(){
@@ -1434,6 +1482,7 @@ function drawMushroomBullets(){
         drawPixelSprite(SPRITE_MUSHROOM_BULLET,-b.size/2,-b.size/2,b.size,false);
         ctx.restore();
     }
+    ctx.globalCompositeOperation='source-over';
 }
 
 function drawCandies(){
@@ -1469,6 +1518,7 @@ function drawPlayer(){
 }
 
 function render(){
+    ctx.globalCompositeOperation='source-over';
     ctx.clearRect(0,0,W,H);
     drawBackgroundForLevel();
 
@@ -1505,8 +1555,8 @@ function render(){
     ctx.textAlign='left';
     if(currentLevel===1)ctx.fillText('☁️ Прыгай по облакам вверх! Избегай неправильных!',10,H-10);
     if(currentLevel===2)ctx.fillText('🍄 Прыгай на грибов! Собирай конфеты! Беги вправо →',10,H-10);
-    if(currentLevel===3)ctx.fillText(' Подойди к черепахе → нажми E → выбери кольцо!',10,H-10);
-    if(currentLevel===4)ctx.fillText('👑 Нажимай SPACE для выстрела! Выбирай грамматику!',10,H-10);
+    if(currentLevel===3)ctx.fillText('🐢 Подойди к черепахе → нажми E → выбери кольцо!',10,H-10);
+    if(currentLevel===4)ctx.fillText(' Нажимай SPACE для выстрела! Выбирай грамматику!',10,H-10);
 }
 
 function gameLoop(){
