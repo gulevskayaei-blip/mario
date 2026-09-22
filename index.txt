@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario English Quest - 4 Levels</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        #gameWrapper {
+            position: relative;
+            width: 960px;
+            height: 600px;
+            border: 4px solid #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(255,255,255,0.1);
+            background: #5c94fc;
+        }
+        canvas { display: block; image-rendering: pixelated; }
+
+        #hud {
+            position: absolute;
+            top: 10px; left: 10px; right: 10px;
+            display: flex;
+            justify-content: space-between;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            z-index: 10;
+            font-family: monospace;
+        }
+        .hud-group { display: flex; gap: 15px; }
+        .coin-icon { color: gold; }
+        .heart-icon { color: #ff4444; }
+        .level-icon { color: #44ffff; }
+
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, #5c94fc 0%, #43b047 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+
+        h1.title {
+            font-size: 50px;
+            color: gold;
+            text-shadow: 4px 4px 0 #e52521, 8px 8px 0 #000;
+            margin-bottom: 10px;
+            animation: float 2s ease-in-out infinite;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        .btn {
+            background: #e52521;
+            color: white;
+            border: 4px solid white;
+            padding: 15px 40px;
+            font-size: 24px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 6px 0 #9a1815;
+            transition: all 0.1s;
+            margin-top: 20px;
+        }
+        .btn:hover { transform: scale(1.05); }
+        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #9a1815; }
+
+        .controls-info {
+            margin-top: 30px;
+            background: rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 500px;
+        }
+        .key {
+            display: inline-block;
+            background: white;
+            color: black;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: monospace;
+            margin: 0 2px;
+        }
+
+        #levelIntro {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+        #levelIntro h2 {
+            font-size: 42px;
+            color: gold;
+            text-shadow: 3px 3px 0 #e52521;
+            margin-bottom: 15px;
+        }
+        #levelIntro p {
+            font-size: 20px;
+            max-width: 500px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        #cloudQuiz, #transQuiz, #ringToss, #bossQuiz {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        .card {
+            background: white;
+            width: 600px;
+            padding: 30px;
+            border-radius: 15px;
+            border: 5px solid #5c94fc;
+            text-align: center;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .card.boss { border-color: #e52521; width: 600px; }
+        .card.trans { border-color: #fbd000; width: 500px; }
+        .card.ring { border-color: #43b047; width: 700px; }
+
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .contextText { font-size: 16px; color: #666; margin-bottom: 15px; font-style: italic; line-height: 1.4; }
+        .optionsRow { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        
+        .optBtn {
+            background: #f0f0f0;
+            border: 3px solid #ccc;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s;
+            color: #333;
+        }
+        .optBtn:hover:not(:disabled) { background: #ddd; border-color: #5c94fc; transform: scale(1.02); }
+        .optBtn.correct { background: #43b047; color: white; border-color: #2d7a30; }
+        .optBtn.wrong { background: #e52521; color: white; border-color: #a01818; }
+        .optBtn:disabled { cursor: default; opacity: 0.7; }
+
+        .bossOpts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 15px; }
+        .ringsGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+        .transOpts { display: grid; gap: 10px; margin-top: 15px; }
+
+        .feedbackMsg { margin-top: 15px; font-weight: bold; font-size: 18px; min-height: 24px; }
+        .fb-ok { color: #43b047; }
+        .fb-bad { color: #e52521; }
+
+        #deathMessage {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 150;
+            display: none;
+            pointer-events: none;
+        }
+
+        #bossHP {
+            position: absolute;
+            bottom: 15px; left: 50%;
+            transform: translateX(-50%);
+            width: 400px; height: 30px;
+            background: rgba(0,0,0,0.5);
+            border: 3px solid white;
+            border-radius: 15px;
+            overflow: hidden;
+            z-index: 10;
+            display: none;
+        }
+        #bossHPBar {
+            height: 100%;
+            background: linear-gradient(90deg, #e52521, #ff6666);
+            width: 100%;
+            transition: width 0.5s;
+        }
+        #bossLabel {
+            position: absolute;
+            bottom: 48px; left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 10;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="gameWrapper">
+    <canvas id="gameCanvas" width="960" height="600"></canvas>
+
+    <div id="hud" class="hidden">
+        <div class="hud-group"><span class="coin-icon">🪙 <span id="scoreVal">0000</span></span></div>
+        <div class="hud-group"><span class="heart-icon">❤️ <span id="livesVal">3</span></span></div>
+        <div class="hud-group"><span class="level-icon"> LEVEL <span id="levelVal">1</span>/4</span></div>
+    </div>
+
+    <div id="bossLabel"> BOSS HP</div>
+    <div id="bossHP"><div id="bossHPBar"></div></div>
+
+    <div id="startScreen" class="screen">
+        <h1 class="title">MARIO'S<br>ENGLISH QUEST</h1>
+        <p style="font-size:20px; margin-bottom:20px;">Unit 2: Food & Drink Adventure — 4 Levels!</p>
+        <button class="btn" onclick="startGame()">▶ START GAME</button>
+        <div class="controls-info">
+            <strong>Управление:</strong><br>
+            <span class="key">←</span> <span class="key">→</span> или <span class="key">A</span> <span class="key">D</span> — Бегать<br>
+            <span class="key">SPACE</span>, <span class="key">↑</span> или <span class="key">W</span> — Прыгать<br><br>
+            <strong>4 Уровня:</strong><br>
+            ☁️ Уровень 1: Прыгай по облакам вверх (выбирай правильное продолжение текста)<br>
+            🍄 Уровень 2: Побеждай грибов и собирай конфеты (переводи слова)<br>
+             Уровень 3: Забрасывай черепах в кольца (категории продуктов)<br>
+            👑 Уровень 4: Стреляй мухоморами в босса (грамматика)!
+        </div>
+    </div>
+
+    <div id="endScreen" class="screen hidden">
+        <h1 id="endTitle" class="title">YOU WIN!</h1>
+        <p id="endStats" style="font-size:24px; margin:20px 0;">Score: 0</p>
+        <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
+    </div>
+
+    <div id="levelIntro">
+        <h2 id="introTitle">LEVEL 1</h2>
+        <p id="introDesc">Description</p>
+        <button class="btn" onclick="beginLevel()">GO! </button>
+    </div>
+
+    <div id="deathMessage">OUCH!</div>
+
+    <div id="cloudQuiz">
+        <div class="card">
+            <div style="background:#5c94fc;color:white;padding:5px 15px;border-radius:20px;display:inline-block;margin-bottom:15px;font-weight:bold;font-size:14px;">☁️ MEAT-FREE MONDAY TEXT</div>
+            <div class="contextText" id="cloudContext"></div>
+            <div style="font-size:18px;color:#333;font-weight:bold;margin-bottom:10px;">Выбери правильное облачко:</div>
+            <div class="optionsRow" id="cloudOpts"></div>
+            <div class="feedbackMsg" id="cloudFeedback"></div>
+        </div>
+    </div>
+
+    <div id="transQuiz">
+        <div class="card trans">
+            <div style="background:#fbd000;color:#333;padding:5px 15px;border-radius:20px;display:inline-block;margin-bottom:15px;font-weight:bold;font-size:14px;" id="transType">🍄 WORD</div>
+            <div class="transWord" id="transWord">strawberries</div>
+            <div style="color:#666;margin-bottom:15px;">Переведи на русский:</div>
+            <div class="transOpts" id="transOpts"></div>
+            <div class="feedbackMsg" id="transFeedback"></div>
+            <button class="btn" id="transNext" style="display:none;background:#43b047;box-shadow:0 4px 0 #2d7a30;padding:10px 25px;font-size:18px;" onclick="closeTransQuiz()">CONTINUE ➔</button>
+        </div>
+    </div>
+
+    <div id="ringToss">
+        <div class="card ring">
+            <div style="background:#43b047;color:white;padding:5px 15px;border-radius:20px;display:inline-block;margin-bottom:15px;font-weight:bold;font-size:14px;">🐢 КАТЕГОРИЯ?</div>
+            <div class="turtleWord" id="turtleWord">burger</div>
+            <div style="color:#666;margin-bottom:15px;">В какое кольцо забросить черепаху?</div>
+            <div class="ringsGrid" id="ringsGrid"></div>
+            <div class="feedbackMsg" id="ringFeedback"></div>
+        </div>
+    </div>
+
+    <div id="bossQuiz">
+        <div class="card boss">
+            <div style="background:#e52521;color:white;padding:5px 15px;border-radius:20px;display:inline-block;margin-bottom:15px;font-weight:bold;font-size:14px;">️ ВЫСТРЕЛ МУХОМОРОМ</div>
+            <div class="bossSentence" id="bossSentence"></div>
+            <div style="color:#666;margin-bottom:15px;">Выбери правильный вариант:</div>
+            <div class="bossOpts" id="bossOpts"></div>
+            <div class="feedbackMsg" id="bossFeedback"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const W = 960, H = 600;
+const GRAVITY = 0.55;
+const JUMP_FORCE = -12.5;
+const MOVE_SPEED = 4.5;
+const FRICTION = 0.82;
+
+const PAL = {
+    '.': null, 'R': '#e52521', 'B': '#0433a3', 'S': '#fdb98a', 'H': '#6b3a1f',
+    'K': '#000000', 'W': '#ffffff', 'G': '#43b047', 'g': '#2d7a30',
+    'Y': '#fbd000', 'y': '#b8860b', 'O': '#c84c0c', 'o': '#8B4513',
+    'P': '#ff69b4', 'p': '#cc3388', 'U': '#8b4513', 'u': '#5c2d0e',
+    'T': '#2ecc71', 't': '#1a8a4a', 'E': '#90ee90', 'D': '#654321',
+    'F': '#ffd700', 'M': '#ff0000', 'm': '#aa0000', 'N': '#f5deb3',
+    'C': '#87ceeb', 'c': '#5cafe0', 'Z': '#9b59b6', 'z': '#6c3483'
+};
+
+const SPRITE_MARIO_STAND = [
+    "...RRRR....","..RRRRRRRR..","..KKSSSKS...",".KSSKSSSKSS.",".KSSSSSSSSS.",
+    "..SSSHHSS...","...HHHHH....","..RRRRRRR...",".RRRRRRRRR..","RRRRRRRRRRR.",
+    "SSSRRRRRSSS.","SSSRRRRRSSS.",".BBB...BBB..",".BBB...BBB..",".HHH...HHH..",".HHH...HHH.."
+];
+const SPRITE_MARIO_RUN_1 = [
+    "...RRRR....","..RRRRRRRR..","..KKSSSKS...",".KSSKSSSKSS.",".KSSSSSSSSS.",
+    "..SSSHHSS...","...HHHHH....","..RRRRRRR...",".RRRRRRRRR..","RRRRRRRRRRR.",
+    "SSSRRRRRSSS.","SSSRRRRRSSS.",".BBB........",".BBB........",".HHH........",".HHH........"
+];
+const SPRITE_MARIO_RUN_2 = [
+    "...RRRR....","..RRRRRRRR..","..KKSSSKS...",".KSSKSSSKSS.",".KSSSSSSSSS.",
+    "..SSSHHSS...","...HHHHH....","..RRRRRRR...",".RRRRRRRRR..","RRRRRRRRRRR.",
+    "SSSRRRRRSSS.","SSSRRRRRSSS.","........BBB.","........BBB.","........HHH.","........HHH."
+];
+const SPRITE_MARIO_JUMP = [
+    "...RRRR....","..RRRRRRRR..","..KKSSSKS...",".KSSKSSSKSS.",".KSSSSSSSSS.",
+    "..SSSHHSS...","...HHHHH....","..RRRRRRR...",".RRRRRRRRR..","RRRRRRRRRRR.",
+    "SSSRRRRRSSS.","SSSRRRRRSSS.",".BBBB.BBBB..",".BBBB.BBBB..",".HHHH.HHHH..",".HHHH.HHHH.."
+];
+const SPRITE_GOOMBA_1 = [
+    "...UUUUU...","..UUUUUUU..",".UUUUUUUUU.","UUUWWUUUWWU","UUUWUWUWUWU",
+    "UUUUUUUUUUU","UUUUUUUUUUU",".UUUUUUUUU.","..NNNNNNN..",".NNNNNNNNN.","NNNNNNNNNNN",".DDD...DDD."
+];
+const SPRITE_GOOMBA_SQUISH = [
+    "............","............","............","............","............",
+    "............","............","............","............","............",
+    ".UUUUUUUUU.",".DDDDDDDDD."
+];
+const SPRITE_TURTLE = [
+    "....TTTT....","..TTTTTTTT..",".TTttttttTT.",".TttttttttT.",".TttKKttttT.",
+    ".TttttttttT.",".TTttttttTT.","..TTTTTTTT..",".NN.NN.NN.N.",".NN.NN.NN.N."
+];
+const SPRITE_CANDY = [
+    "..PP......PP..",".PPP.PPPP.PPP.","..PPYYYYYYPP..","...PYFFFFFFYP...","...PYFFFFFFYP...",
+    "...PYFFFFFFYP...","...PYFFFFFFYP...","..PPYYYYYYPP..",".PPP.PPPP.PPP.","..PP......PP.."
+];
+const SPRITE_BOSS = [
+    ".....ZZZZZZ.....","...ZZZZZZZZZZ...","..ZZzzzzzzzzZZ..",".ZZzKKzzzzKKzZZ.",".ZZzzzzzzzzzzZZ.",
+    ".ZZzMMzzzzMMzZZ.","..ZZzzzzzzzzZZ...","...ZZZZZZZZZZ...","..ZZZZZZZZZZZZ..",".ZZZZZZZZZZZZZZ.",
+    "ZZZZZZZZZZZZZZZZ","ZZZZZZZZZZZZZZZZ",".ZZZZ.ZZZZ.ZZZZ.",".ZZZZ.ZZZZ.ZZZZ.","..zzz..zzz..zzz..","..zzz..zzz..zzz.."
+];
+const SPRITE_MUSHROOM_BULLET = [
+    "...MMMM...","..MMMMMM..",".MMWWMMWM.",".MMMMMMMMM","MMMMMMMMMM",
+    ".MMMMMMMM.","..NNNNNN..","..NNNNNN..","...NNNN..."
+];
+
+const CLOUD_LEVEL_DATA = [
+    { context: "Meat-Free Monday is a simple idea: one day a week without...", correct: "meat and fish (and ideally, without other animal products). From Tuesday to", wrong: "sugar and crisps (and ideally, without other yummy products). From Tuesday to" },
+    { context: "...From Tuesday to Sunday, you can eat all your favourite...", correct: "Sunday, you can eat all your favourite meat and fish recipes. On Monday, you can try a delicious", wrong: "Sunday, you can eat all your favourite insect recipes. On Monday, you can try a delicious" },
+    { context: "...On Monday, you can try a delicious...", correct: "vegetarian or vegan meal. Meat-Free Monday is popular in many countries – in schools, homes and restaurants.", wrong: "smelly meal. Meat-Free Monday is popular in many countries – in schools, homes and restaurants." }
+];
+
+const TRANSLATION_DATA = [
+    { en: "strawberries", ru: "клубника", options: ["клубника", "черника", "малина"] },
+    { en: "mushrooms", ru: "грибы", options: ["огурцы", "грибы", "помидоры"] },
+    { en: "orange juice", ru: "апельсиновый сок", options: ["яблочный сок", "вишнёвый сок", "апельсиновый сок"] },
+    { en: "carrots", ru: "морковь", options: ["картофель", "морковь", "лук"] },
+    { en: "cereal", ru: "хлопья/злаки", options: ["хлопья/злаки", "макароны", "рис"] },
+    { en: "rice", ru: "рис", options: ["рис", "гречка", "овсянка"] },
+    { en: "fish (salmon)", ru: "рыба (лосось)", options: ["мясо (говядина)", "рыба (лосось)", "курица"] },
+    { en: "cheese", ru: "сыр", options: ["масло", "молоко", "сыр"] },
+    { en: "milk", ru: "молоко", options: ["молоко", "кефир", "сливки"] },
+    { en: "eggs", ru: "яйца", options: ["яйца", "блины", "омлеты"] },
+    { en: "butter", ru: "масло", options: ["маргарин", "масло", "жир"] },
+    { en: "bread", ru: "хлеб", options: ["хлеб", "булка", "батон"] },
+    { en: "chicken", ru: "курица", options: ["индейка", "утка", "курица"] }
+];
+
+const RING_CATEGORIES = ["Fruit", "Vegetables", "Meat/Fish", "Dairy products", "Drinks", "Other"];
+const TURTLES_DATA = [
+    { word: "burger", category: "Other" }, { word: "butter", category: "Dairy products" },
+    { word: "carrots", category: "Vegetables" }, { word: "cereal", category: "Other" },
+    { word: "cheese", category: "Dairy products" }, { word: "chicken", category: "Meat/Fish" },
+    { word: "eggs", category: "Dairy products" }, { word: "fish", category: "Meat/Fish" },
+    { word: "milk", category: "Drinks" }, { word: "mushrooms", category: "Vegetables" },
+    { word: "orange juice", category: "Drinks" }, { word: "pasta", category: "Other" },
+    { word: "rice", category: "Other" }, { word: "strawberries", category: "Fruit" }
+];
+
+const BOSS_SENTENCES = [
+    { sentence: "I ___ two apples in my bag.", options: ["have got", "has got", "am"], correct: 0 },
+    { sentence: "My sister ___ a big cake for her birthday.", options: ["has got", "have got", "are"], correct: 0 },
+    { sentence: "We ___ hungry, so we want some bread.", options: ["are", "is", "am"], correct: 0 },
+    { sentence: "My mum ___ tomatoes in her salad.", options: ["likes", "like", "doesn't like"], correct: 0 },
+    { sentence: "I ___ chips with ice cream.", options: ["don't like", "doesn't like", "am not like"], correct: 0 },
+    { sentence: "My friend ___ lemons — they are too sour.", options: ["doesn't like", "don't like", "isn't like"], correct: 0 },
+    { sentence: "___ any bananas?", options: ["Have you got", "Has you got", "Are you got"], correct: 0 },
+    { sentence: "My dad ___ some beef for dinner.", options: ["has got", "have got", "is"], correct: 0 },
+    { sentence: "These biscuits ___ very tasty!", options: ["are", "is", "am"], correct: 0 },
+    { sentence: "I ___ thirsty — I want some lemonade.", options: ["am", "is", "are"], correct: 0 },
+    { sentence: "My brother ___ yoghurt.", options: ["doesn't like", "don't like", "aren't like"], correct: 0 },
+    { sentence: "We ___ potatoes and tomatoes for lunch.", options: ["have got", "has got", "is"], correct: 0 },
+    { sentence: "She ___ hungry — she wants some toast.", options: ["is", "am", "are"], correct: 0 },
+    { sentence: "My grandma ___ to put sugar in her tea.", options: ["likes", "like", "don't like"], correct: 0 },
+    { sentence: "I ___ ice cream in winter.", options: ["don't like", "doesn't like", "am not"], correct: 0 },
+    { sentence: "___ any bread?", options: ["Has he got", "Have he got", "Is he got"], correct: 0 },
+    { sentence: "My cat ___ bananas.", options: ["doesn't like", "don't like", "isn't like"], correct: 0 },
+    { sentence: "These lemons ___ very yellow.", options: ["are", "is", "am"], correct: 0 },
+    { sentence: "We ___ cake with tea.", options: ["like", "likes", "doesn't like"], correct: 0 },
+    { sentence: "My friend ___ some biscuits in his lunchbox.", options: ["has got", "have got", "are"], correct: 0 }
+];
+
+let currentLevel = 1;
+let gameState = { running: false, paused: false, score: 0, lives: 3 };
+let player = { x: 100, y: 0, vx: 0, vy: 0, w: 36, h: 48, onGround: false, facingRight: true, frameTimer: 0, animState: 'stand', runFrame: 0, invincible: 0 };
+let camera = { x: 0, y: 0 };
+let particles = [];
+let shakeIntensity = 0;
+
+let clouds = [];
+let goombas = [];
+let candies = [];
+let turtles = [];
+let rings = [];
+let boss = null;
+let mushroomBullets = [];
+let levelComplete = false;
+
+const keys = {};
+window.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function drawPixelSprite(sprite, x, y, size, flip) {
+    const cols = sprite[0].length;
+    const rows = sprite.length;
+    const ps = size / cols;
+    const rowScale = (size * rows / cols) / rows;
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const ch = sprite[r][c];
+            const col = PAL[ch];
+            if (col) {
+                ctx.fillStyle = col;
+                const dx = flip ? x + (cols - 1 - c) * ps : x + c * ps;
+                ctx.fillRect(Math.floor(dx), Math.floor(y + r * rowScale), Math.ceil(ps)+1, Math.ceil(rowScale)+1);
+            }
+        }
+    }
+}
+
+function createParticles(x, y, color, count) {
+    for(let i=0;i<count;i++){
+        particles.push({x,y,vx:(Math.random()-0.5)*5,vy:(Math.random()-0.5)*5-2,life:40,color});
+    }
+}
+
+function updateParticles() {
+    for(let i=particles.length-1;i>=0;i--){
+        let p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life--;
+        if(p.life<=0) particles.splice(i,1);
+    }
+}
+
+function drawParticles() {
+    for(let p of particles){
+        ctx.globalAlpha=Math.max(0,p.life/40);
+        ctx.fillStyle=p.color;
+        ctx.fillRect(p.x-camera.x,p.y-camera.y,4,4);
+    }
+    ctx.globalAlpha=1;
+}
+
+function showDeathMessage(t){
+    const m=document.getElementById('deathMessage');
+    m.textContent=t; m.style.display='block';
+    setTimeout(()=>{m.style.display='none';},1200);
+}
+
+function updateHUD(){
+    document.getElementById('scoreVal').textContent=gameState.score.toString().padStart(4,'0');
+    document.getElementById('livesVal').textContent=gameState.lives;
+    document.getElementById('levelVal').textContent=currentLevel;
+}
+
+function loseLife(reason){
+    gameState.lives--;
+    updateHUD();
+    showDeathMessage(reason||"OUCH!");
+    if(gameState.lives<=0){ gameOver(); return true; }
+    return false;
+}
+
+function gameOver(){
+    gameState.running=false;
+    document.getElementById('endTitle').textContent="GAME OVER";
+    document.getElementById('endTitle').style.color="#e52521";
+    document.getElementById('endStats').textContent=`Final Score: ${gameState.score}`;
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('bossHP').style.display='none';
+    document.getElementById('bossLabel').style.display='none';
+}
+
+function winGame(){
+    gameState.running=false;
+    document.getElementById('endTitle').textContent="🏆 YOU WIN! 🏆";
+    document.getElementById('endTitle').style.color="gold";
+    document.getElementById('endStats').innerHTML=`Final Score: ${gameState.score}<br>Lives Left: ${gameState.lives}<br>All 4 Levels Complete!`;
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('hud').classList.add('hidden');
+    document.getElementById('bossHP').style.display='none';
+    document.getElementById('bossLabel').style.display='none';
+}
+
+function goToNextLevel() {
+    const nextLevel = currentLevel + 1;
+    console.log('Переход с уровня', currentLevel, 'на уровень', nextLevel);
+    if (nextLevel > 4) {
+        winGame();
+        return;
+    }
+    levelComplete = false;
+    showLevelIntro(nextLevel);
+}
+
+function setupLevel(lvl) {
+    currentLevel = lvl;
+    console.log('=== ЗАГРУЗКА УРОВНЯ', lvl, '===');
+
+    particles = [];
+    mushroomBullets = [];
+    levelComplete = false;
+    player.invincible = 60;
+
+    clouds=[]; goombas=[]; candies=[]; turtles=[]; rings=[]; boss=null;
+
+    if(lvl===1){
+        player.x=400; player.y=500; player.vx=0; player.vy=0;
+        clouds.push({x:200,y:550,w:560,h:50,type:'ground',landed:true});
+        
+        const cloudPositions = [
+            {x: 350, y: 400},
+            {x: 500, y: 250},
+            {x: 350, y: 100},
+        ];
+        
+        cloudPositions.forEach((pos, i) => {
+            clouds.push({
+                x: pos.x, y: pos.y, w: 200, h: 40,
+                type: 'cloud', textIdx: i, landed: false,
+                quizAnswered: false
+            });
+        });
+        
+        clouds.push({x: 300, y: -50, w: 360, h: 50, type: 'goal', landed: false});
+        camera.x = 0;
+        camera.y = 0;
+    }
+    else if(lvl===2){
+        player.x=100; player.y=450; player.vx=0; player.vy=0;
+        const worldW=3500;
+        const groundSegs=[{x:0,w:500},{x:600,w:400},{x:1100,w:500},{x:1700,w:400},{x:2200,w:500},{x:2800,w:700}];
+        groundSegs.forEach(s=>clouds.push({x:s.x,y:520,w:s.w,h:80,type:'ground',landed:true}));
+        
+        const plats=[
+            {x:350,y:440,w:150},
+            {x:700,y:420,w:150},
+            {x:1050,y:440,w:150},
+            {x:1400,y:420,w:150},
+            {x:1750,y:440,w:150},
+            {x:2100,y:420,w:150},
+            {x:2500,y:440,w:150},
+            {x:2900,y:420,w:150}
+        ];
+        plats.forEach(p=>clouds.push({x:p.x,y:p.y,w:p.w,h:25,type:'platform',landed:true}));
+        const gPos=[250,550,850,1200,1500,1900,2300,2600,3000,3200];
+        gPos.forEach((gx,i)=>{
+            goombas.push({x:gx,y:520-32,w:32,h:32,vx:-1.2,alive:true,squished:false,frame:0,timer:0,dataIdx:i%TRANSLATION_DATA.length});
+        });
+        plats.forEach((p,i)=>{
+            candies.push({x:p.x+p.w/2-10,y:p.y-35,collected:false,dataIdx:(gPos.length+i)%TRANSLATION_DATA.length});
+        });
+        camera.x=0;
+    }
+    else if(lvl===3){
+        player.x=100; player.y=400; player.vx=0; player.vy=0;
+        clouds.push({x:0,y:520,w:960,h:80,type:'ground',landed:true});
+        const ringX=700;
+        RING_CATEGORIES.forEach((cat,i)=>{
+            rings.push({x:ringX+(i%3)*90,y:350+Math.floor(i/3)*100,w:70,h:70,label:cat,thrown:[]});
+        });
+        // ИСПРАВЛЕНИЕ: создаём все 14 черепах
+        let tIdx=0;
+        for(let tx=50; tx<1200 && tIdx<TURTLES_DATA.length; tx+=80, tIdx++){
+            turtles.push({x:tx,y:520-30,w:30,h:30,vx:0.8,alive:true,dataIdx:tIdx,grabbed:false,flying:false,fx:0,fy:0,targetRing:null,animT:0});
+        }
+        camera.x=0;
+    }
+    else if(lvl===4){
+        player.x=100; player.y=400; player.vx=0; player.vy=0;
+        clouds.push({x:0,y:520,w:960,h:80,type:'ground',landed:true});
+        clouds.push({x:200,y:400,w:100,h:20,type:'platform'});
+        clouds.push({x:400,y:350,w:100,h:20,type:'platform'});
+        boss={x:750,y:300,w:120,h:160,hp:BOSS_SENTENCES.length,maxHp:BOSS_SENTENCES.length,phase:'waiting',timer:0,attackTimer:0,hitFlash:0};
+        document.getElementById('bossHP').style.display='block';
+        document.getElementById('bossLabel').style.display='block';
+        updateBossHP();
+        camera.x=0;
+    }
+    updateHUD();
+}
+
+function updateBossHP(){
+    if(!boss)return;
+    const pct=(boss.hp/boss.maxHp)*100;
+    document.getElementById('bossHPBar').style.width=pct+'%';
+}
+
+const LEVEL_INTROS = [
+    null,
+    { title:"☁️ LEVEL 1: Cloud Jump", desc:"Марио должен допрыгать по облакам вверх! На каждом облачке — продолжение текста про Meat-Free Monday. Прыгай на облако, выбирай ПРАВИЛЬНОЕ продолжение. Если ошибёшься — упадёшь вниз и начнёшь сначала!" },
+    { title:" LEVEL 2: Mushroom Valley", desc:"Побеждай грибов, прыгая на них сверху, и собирай конфеты на платформах. Каждое существо даст тебе слово для перевода!" },
+    { title:"🐢 LEVEL 3: Turtle Ring Toss", desc:"Подходи к черепахам, хватай их (клавиша E рядом с ними) и бросай в правильное кольцо категории! Fruit, Vegetables, Meat/Fish, Dairy, Drinks, Other." },
+    { title:"👑 LEVEL 4: Boss Fight!", desc:"Босс атакует! Нажимай SPACE чтобы стрелять мухоморами. Перед каждым выстрелом выбери правильную грамматику. Попади 20 раз чтобы победить!" }
+];
+
+function showLevelIntro(lvl){
+    console.log('showLevelIntro вызван с lvl =', lvl);
+    if (lvl > 4) {
+        winGame();
+        return;
+    }
+    setupLevel(lvl);
+    const info = LEVEL_INTROS[lvl];
+    if (info) {
+        document.getElementById('introTitle').textContent = info.title;
+        document.getElementById('introDesc').textContent = info.desc;
+    }
+    document.getElementById('levelIntro').style.display = 'flex';
+    gameState.paused = true;
+}
+
+function beginLevel(){
+    console.log('beginLevel: запускаем уровень', currentLevel);
+    document.getElementById('levelIntro').style.display='none';
+    gameState.paused=false;
+}
+
+function updateLevel1(){
+    handlePlayerMovement(true);
+
+    for(let c of clouds){
+        if(c.type==='ground'||c.type==='platform'){
+            resolveCollisionWithCloud(c);
+        } else if(c.type==='cloud'){
+            if(c.quizAnswered){
+                resolveCollisionWithCloud(c);
+            } else {
+                if(player.vy>0 && 
+                   player.x+player.w>c.x && player.x<c.x+c.w &&
+                   player.y+player.h>=c.y && player.y+player.h<=c.y+c.h+10){
+                    player.y=c.y-player.h;
+                    player.vy=0;
+                    player.onGround=true;
+                    c.landed=true;
+                    openCloudQuiz(c.textIdx,c);
+                }
+            }
+        } else if(c.type==='goal'){
+            if(currentLevel === 1 && !levelComplete &&
+               player.vy>0 && 
+               player.x+player.w>c.x && player.x<c.x+c.w &&
+               player.y+player.h>=c.y && player.y+player.h<=c.y+c.h+10){
+                player.y=c.y-player.h;
+                player.vy=0;
+                player.onGround=true;
+                levelComplete=true;
+                console.log('Уровень 1 завершён! Переход на уровень 2');
+                setTimeout(() => goToNextLevel(), 1500);
+            }
+        }
+    }
+
+    if(player.y > camera.y + H + 100){
+        if(loseLife("You fell! Starting over...")) return;
+        player.x=400;
+        player.y=500;
+        player.vx=0;
+        player.vy=0;
+        clouds.forEach(c=>{
+            if(c.type==='cloud'){
+                c.landed=false;
+                c.quizAnswered=false;
+            }
+        });
+    }
+
+    const targetCamY = player.y - H * 0.5;
+    camera.y += (targetCamY - camera.y) * 0.1;
+    camera.x = 0;
+}
+
+function updateLevel2(){
+    handlePlayerMovement(false);
+    const worldW=3500;
+
+    for(let c of clouds){ resolveCollisionWithCloud(c); }
+
+    for(let g of goombas){
+        if(!g.alive||g.squished)continue;
+        g.x+=g.vx;
+        g.timer++;
+        if(g.timer%20===0)g.frame^=1;
+        let onSomething=false;
+        for(let c of clouds){
+            if(c.type==='ground'||c.type==='platform'){
+                if(g.x+g.w>c.x&&g.x<c.x+c.w&&Math.abs((g.y+g.h)-c.y)<5){
+                    onSomething=true;
+                    const front=g.vx>0?g.x+g.w+5:g.x-5;
+                    if(front<c.x||front>c.x+c.w){g.vx*=-1;}
+                }
+            }
+        }
+        if(!onSomething){g.vx*=-1;g.x+=g.vx*3;}
+        if(g.x<0||g.x>worldW)g.vx*=-1;
+
+        if(player.invincible<=0&&
+           player.x<g.x+g.w&&player.x+player.w>g.x&&
+           player.y<g.y+g.h&&player.y+player.h>g.y){
+            if(player.vy>0&&(player.y+player.h-player.vy)<=g.y+10){
+                g.squished=true;
+                player.vy=JUMP_FORCE*0.5;
+                createParticles(g.x+g.w/2,g.y+g.h/2,'#8B4513',10);
+                openTransQuiz(g.dataIdx,'goomba');
+            } else {
+                player.invincible=60;
+                player.vx=player.x<g.x?-5:5;
+                player.vy=-5;
+                shakeIntensity=8;
+            }
+        }
+    }
+
+    for(let g of goombas){
+        if(g.squished){
+            g.squishTimer=(g.squishTimer||0)+1;
+            if(g.squishTimer>60)g.alive=false;
+        }
+    }
+
+    for(let c of candies){
+        if(c.collected)continue;
+        c.bobT=(c.bobT||0)+0.05;
+        const cy=c.y+Math.sin(c.bobT)*5;
+        if(player.x<c.x+20&&player.x+player.w>c.x&&player.y<cy+20&&player.y+player.h>cy){
+            c.collected=true;
+            createParticles(c.x+10,cy+10,'#FFD700',8);
+            openTransQuiz(c.dataIdx,'candy');
+        }
+    }
+
+    if(player.y>H+100){
+        if(loseLife("Fell into a pit!"))return;
+        player.x=100;player.y=450;player.vx=0;player.vy=0;
+    }
+
+    if(player.x<0)player.x=0;
+    if(player.x>worldW-player.w)player.x=worldW-player.w;
+
+    if(player.x>worldW-150 && !levelComplete){
+        levelComplete=true;
+        console.log('Уровень 2 завершён! Переход на уровень 3');
+        setTimeout(() => goToNextLevel(), 1500);
+    }
+
+    camera.x=player.x-W*0.35;
+    if(camera.x<0)camera.x=0;
+    if(camera.x>worldW-W)camera.x=worldW-W;
+    camera.y=0;
+}
+
+function updateLevel3(){
+    handlePlayerMovement(false);
+    for(let c of clouds){resolveCollisionWithCloud(c);}
+
+    for(let t of turtles){
+        if(!t.alive||t.grabbed||t.flying)continue;
+        t.x+=t.vx;
+        if(t.x<10||t.x>1150)t.vx*=-1; // Увеличил диапазон
+    }
+
+    if(keys['KeyE']){
+        keys['KeyE']=false;
+        for(let t of turtles){
+            if(!t.alive||t.grabbed||t.flying)continue;
+            const dist=Math.abs((player.x+player.w/2)-(t.x+t.w/2))+Math.abs((player.y+player.h/2)-(t.y+t.h/2));
+            if(dist<60){
+                t.grabbed=true;
+                openRingToss(t);
+                break;
+            }
+        }
+    }
+
+    for(let t of turtles){
+        if(t.flying&&t.targetRing){
+            t.animT+=0.04;
+            const progress=Math.min(t.animT,1);
+            const startX=t.fx,startY=t.fy;
+            const endX=t.targetRing.x+t.targetRing.w/2-t.w/2;
+            const endY=t.targetRing.y-10;
+            t.x=startX+(endX-startX)*progress;
+            t.y=startY+(endY-startY)*progress-Math.sin(progress*Math.PI)*80;
+            if(progress>=1){
+                t.flying=false;
+                t.alive=false;
+                t.targetRing.thrown.push(t.dataIdx);
+                createParticles(t.x+t.w/2,t.y,'#2ecc71',12);
+                checkRingWin();
+            }
+        }
+    }
+
+    if(player.y>H+100){
+        if(loseLife("Ouch!"))return;
+        player.x=100;player.y=400;player.vx=0;player.vy=0;
+    }
+    if(player.x<0)player.x=0;
+    if(player.x>W-player.w)player.x=W-player.w;
+    camera.x=0;camera.y=0;
+}
+
+// ИСПРАВЛЕНИЕ: используем реальное количество черепах
+function checkRingWin(){
+    const totalThrown = rings.reduce((s,r) => s + r.thrown.length, 0);
+    const totalTurtles = turtles.length;
+    
+    console.log('Черепах заброшено:', totalThrown, 'из', totalTurtles);
+    
+    if(totalThrown >= totalTurtles && !levelComplete){
+        levelComplete = true;
+        gameState.score += 500;
+        updateHUD();
+        console.log('Уровень 3 завершён! Переход на уровень 4');
+        showDeathMessage("LEVEL COMPLETE! ➔");
+        setTimeout(() => goToNextLevel(), 2500);
+    }
+}
+
+function updateLevel4(){
+    handlePlayerMovement(false);
+    for(let c of clouds){resolveCollisionWithCloud(c);}
+
+    if(keys['Space']&&boss&&boss.phase==='waiting'){
+        keys['Space']=false;
+        openBossQuiz();
+    }
+
+    for(let i=mushroomBullets.length-1;i>=0;i--){
+        const b=mushroomBullets[i];
+        b.x+=b.vx;
+        b.y+=b.vy;
+        b.vy+=0.1;
+        b.rot=(b.rot||0)+0.15;
+        if(boss && b.x<boss.x+boss.w&&b.x+b.size>boss.x&&b.y<boss.y+boss.h&&b.y+b.size>boss.y){
+            boss.hp--;
+            boss.hitFlash=15;
+            updateBossHP();
+            createParticles(b.x,b.y,'#ff0000',15);
+            mushroomBullets.splice(i,1);
+            if(boss.hp<=0){
+                levelComplete=true;
+                gameState.score+=1000;
+                updateHUD();
+                createParticles(boss.x+boss.w/2,boss.y+boss.h/2,'#9b59b6',40);
+                setTimeout(()=>winGame(),2000);
+            }
+            continue;
+        }
+        if(b.x<-50||b.x>W+50||b.y>H+50){mushroomBullets.splice(i,1);}
+    }
+
+    if(boss && boss.hp>0){
+        boss.attackTimer++;
+        if(boss.attackTimer>180){
+            boss.attackTimer=0;
+            const angle=Math.atan2(player.y-boss.y,player.x-boss.x);
+            particles.push({
+                x:boss.x,y:boss.y+boss.h/2,
+                vx:Math.cos(angle)*3,vy:Math.sin(angle)*3,
+                life:200,color:'#ff4400',isAttack:true,size:12
+            });
+        }
+    }
+
+    for(let i=particles.length-1;i>=0;i--){
+        const p=particles[i];
+        if(p.isAttack){
+            p.x+=p.vx;p.y+=p.vy;p.life--;
+            if(player.invincible<=0&&
+               player.x<p.x+p.size&&player.x+player.w>p.x&&
+               player.y<p.y+p.size&&player.y+player.h>p.y){
+                player.invincible=90;
+                shakeIntensity=12;
+                particles.splice(i,1);
+                if(loseLife("Boss hit you!"))return;
+            }
+            if(p.life<=0||p.x<-20||p.x>W+20||p.y<-20||p.y>H+20)particles.splice(i,1);
+        }
+    }
+
+    if(boss && boss.hitFlash>0)boss.hitFlash--;
+    if(player.x<0)player.x=0;
+    if(player.x>W-player.w)player.x=W-player.w;
+    if(player.y>H+100){
+        if(loseLife("Fell!"))return;
+        player.x=100;player.y=400;player.vx=0;player.vy=0;
+    }
+    camera.x=0;camera.y=0;
+}
+
+function handlePlayerMovement(isVertical){
+    if(keys['ArrowLeft']||keys['KeyA']){player.vx-=0.7;player.facingRight=false;}
+    if(keys['ArrowRight']||keys['KeyD']){player.vx+=0.7;player.facingRight=true;}
+    player.vx*=FRICTION;
+    if(player.vx>MOVE_SPEED)player.vx=MOVE_SPEED;
+    if(player.vx<-MOVE_SPEED)player.vx=-MOVE_SPEED;
+
+    if((keys['Space']||keys['ArrowUp']||keys['KeyW'])&&player.onGround){
+        player.vy=JUMP_FORCE;
+        player.onGround=false;
+        createParticles(player.x+player.w/2,player.y+player.h,'#fff',4);
+    }
+
+    player.vy+=GRAVITY;
+    if(player.vy>14)player.vy=14;
+
+    player.x+=player.vx;
+    player.y+=player.vy;
+
+    player.onGround=false;
+    player.frameTimer++;
+    if(!player.onGround)player.animState='jump';
+    else if(Math.abs(player.vx)>0.5){
+        player.animState='run';
+        if(player.frameTimer%8===0)player.runFrame=(player.runFrame||0)^1;
+    }else{player.animState='stand';player.runFrame=0;}
+
+    if(player.invincible>0)player.invincible--;
+}
+
+function resolveCollisionWithCloud(c){
+    if(player.x<c.x+c.w&&player.x+player.w>c.x&&player.y<c.y+c.h&&player.y+player.h>c.y){
+        const oX=(player.w+c.w)/2-Math.abs((player.x+player.w/2)-(c.x+c.w/2));
+        const oY=(player.h+c.h)/2-Math.abs((player.y+player.h/2)-(c.y+c.h/2));
+        if(oX<oY){
+            if(player.x<c.x)player.x=c.x-player.w;
+            else player.x=c.x+c.w;
+            player.vx=0;
+        }else{
+            if(player.y<c.y){player.y=c.y-player.h;player.vy=0;player.onGround=true;}
+            else{player.y=c.y+c.h;player.vy=0;}
+        }
+    }
+}
+
+function openCloudQuiz(textIdx,cloudObj){
+    gameState.paused=true;
+    const data=CLOUD_LEVEL_DATA[textIdx];
+    document.getElementById('cloudContext').textContent='"'+data.context+'"';
+    document.getElementById('cloudFeedback').textContent='';
+    document.getElementById('cloudFeedback').className='feedbackMsg';
+
+    const optsDiv=document.getElementById('cloudOpts');
+    optsDiv.innerHTML='';
+
+    const items=[{text:data.correct,isCorrect:true},{text:data.wrong,isCorrect:false}];
+    items.sort(()=>Math.random()-0.5);
+
+    items.forEach(item=>{
+        const btn=document.createElement('button');
+        btn.className='optBtn';
+        btn.textContent=item.text;
+        btn.onclick=()=>{
+            const buttons=optsDiv.querySelectorAll('.optBtn');
+            buttons.forEach(b=>b.disabled=true);
+            const fb=document.getElementById('cloudFeedback');
+            if(item.isCorrect){
+                btn.classList.add('correct');
+                fb.textContent="✓ Правильно! Марио остаётся на облаке!";
+                fb.className='feedbackMsg fb-ok';
+                gameState.score+=100;
+                updateHUD();
+                
+                cloudObj.quizAnswered=true;
+                cloudObj.landed=true;
+                player.y = cloudObj.y - player.h;
+                player.vy = 0;
+                player.onGround = true;
+                player.vx = 0;
+                
+                setTimeout(()=>{
+                    document.getElementById('cloudQuiz').style.display='none';
+                    gameState.paused=false;
+                },1200);
+            }else{
+                btn.classList.add('wrong');
+                buttons.forEach(b=>{if(b.textContent===data.correct)b.classList.add('correct');});
+                fb.textContent="✗ Неверно! Марио падает вниз!";
+                fb.className='feedbackMsg fb-bad';
+                if(loseLife("Wrong cloud! Falling...")){
+                    document.getElementById('cloudQuiz').style.display='none';
+                    return;
+                }
+                setTimeout(()=>{
+                    document.getElementById('cloudQuiz').style.display='none';
+                    gameState.paused=false;
+                    cloudObj.quizAnswered=false;
+                    cloudObj.landed=false;
+                    player.vy=5;
+                    player.onGround=false;
+                },1500);
+            }
+        };
+        optsDiv.appendChild(btn);
+    });
+
+    document.getElementById('cloudQuiz').style.display='flex';
+}
+
+function openTransQuiz(dataIdx,source){
+    gameState.paused=true;
+    const data=TRANSLATION_DATA[dataIdx];
+    document.getElementById('transType').textContent=source==='goomba'?' GOOMBA WORD':'🍬 CANDY WORD';
+    document.getElementById('transWord').textContent=data.en;
+    document.getElementById('transFeedback').textContent='';
+    document.getElementById('transFeedback').className='feedbackMsg';
+    document.getElementById('transNext').style.display='none';
+
+    const optsDiv=document.getElementById('transOpts');
+    optsDiv.innerHTML='';
+
+    const shuffled=[...data.options].sort(()=>Math.random()-0.5);
+    shuffled.forEach(opt=>{
+        const btn=document.createElement('button');
+        btn.className='optBtn';
+        btn.textContent=opt;
+        btn.onclick=()=>{
+            const buttons=optsDiv.querySelectorAll('.optBtn');
+            buttons.forEach(b=>b.disabled=true);
+            const fb=document.getElementById('transFeedback');
+            if(opt===data.ru){
+                btn.classList.add('correct');
+                fb.textContent="✓ Отлично! +100 очков";
+                fb.className='feedbackMsg fb-ok';
+                gameState.score+=100;
+            }else{
+                btn.classList.add('wrong');
+                buttons.forEach(b=>{if(b.textContent===data.ru)b.classList.add('correct');});
+                fb.textContent="✗ Неверно! Правильный ответ подсвечен.";
+                fb.className='feedbackMsg fb-bad';
+            }
+            updateHUD();
+            document.getElementById('transNext').style.display='inline-block';
+        };
+        optsDiv.appendChild(btn);
+    });
+
+    document.getElementById('transQuiz').style.display='flex';
+}
+
+function closeTransQuiz(){
+    document.getElementById('transQuiz').style.display='none';
+    gameState.paused=false;
+}
+
+function openRingToss(turtle){
+    gameState.paused=true;
+    const data=TURTLES_DATA[turtle.dataIdx];
+    document.getElementById('turtleWord').textContent=data.word;
+    document.getElementById('ringFeedback').textContent='';
+    document.getElementById('ringFeedback').className='feedbackMsg';
+
+    const grid=document.getElementById('ringsGrid');
+    grid.innerHTML='';
+
+    RING_CATEGORIES.forEach(cat=>{
+        const btn=document.createElement('button');
+        btn.className='optBtn';
+        btn.textContent=cat;
+        btn.onclick=()=>{
+            const buttons=grid.querySelectorAll('.optBtn');
+            buttons.forEach(b=>b.disabled=true);
+            const fb=document.getElementById('ringFeedback');
+            if(cat===data.category){
+                btn.classList.add('correct');
+                fb.textContent="✓ Точно в кольцо! +100 очков";
+                fb.className='feedbackMsg fb-ok';
+                gameState.score+=100;
+                updateHUD();
+                turtle.grabbed=false;
+                turtle.flying=true;
+                turtle.fx=turtle.x;
+                turtle.fy=turtle.y;
+                turtle.animT=0;
+                turtle.targetRing=rings.find(r=>r.label===cat);
+                setTimeout(()=>{
+                    document.getElementById('ringToss').style.display='none';
+                    gameState.paused=false;
+                },800);
+            }else{
+                btn.classList.add('wrong');
+                buttons.forEach(b=>{if(b.textContent===data.category)b.classList.add('correct');});
+                fb.textContent="✗ Не туда! Черепаха убегает...";
+                fb.className='feedbackMsg fb-bad';
+                turtle.grabbed=false;
+                if(loseLife("Wrong ring!")){
+                    document.getElementById('ringToss').style.display='none';
+                    return;
+                }
+                setTimeout(()=>{
+                    document.getElementById('ringToss').style.display='none';
+                    gameState.paused=false;
+                },1500);
+            }
+        };
+        grid.appendChild(btn);
+    });
+
+    document.getElementById('ringToss').style.display='flex';
+}
+
+let currentBossQIdx=0;
+function shuffleArray(arr){return [...arr].sort(()=>Math.random()-0.5);}
+
+function openBossQuiz(){
+    if(currentBossQIdx>=BOSS_SENTENCES.length)currentBossQIdx=0;
+    const q=BOSS_SENTENCES[currentBossQIdx];
+    gameState.paused=true;
+
+    const parts=q.sentence.split('___');
+    document.getElementById('bossSentence').innerHTML=parts[0]+'<span style="color:#e52521;text-decoration:underline;">______</span>'+parts[1];
+    document.getElementById('bossFeedback').textContent='';
+    document.getElementById('bossFeedback').className='feedbackMsg';
+
+    const optsDiv=document.getElementById('bossOpts');
+    optsDiv.innerHTML='';
+
+    const indexed=q.options.map((o,i)=>({text:o,isCorrect:i===q.correct}));
+    const shuffled=shuffleArray(indexed);
+
+    shuffled.forEach(item=>{
+        const btn=document.createElement('button');
+        btn.className='optBtn';
+        btn.textContent=item.text;
+        btn.onclick=()=>{
+            const buttons=optsDiv.querySelectorAll('.optBtn');
+            buttons.forEach(b=>b.disabled=true);
+            const fb=document.getElementById('bossFeedback');
+            if(item.isCorrect){
+                btn.classList.add('correct');
+                fb.textContent="✓ Мухомор летит в босса!";
+                fb.className='feedbackMsg fb-ok';
+                gameState.score+=50;
+                updateHUD();
+                const angle=Math.atan2((boss.y+boss.h/2)-(player.y+player.h/2),(boss.x)-(player.x+player.w));
+                mushroomBullets.push({
+                    x:player.x+player.w,y:player.y+player.h/3,
+                    vx:Math.cos(angle)*8,vy:Math.sin(angle)*8-2,
+                    size:24,rot:0
+                });
+                currentBossQIdx++;
+                setTimeout(()=>{
+                    document.getElementById('bossQuiz').style.display='none';
+                    gameState.paused=false;
+                },1000);
+            }else{
+                btn.classList.add('wrong');
+                buttons.forEach(b=>{if(b.textContent===q.options[q.correct])b.classList.add('correct');});
+                fb.textContent="✗ Промах! Босс смеётся!";
+                fb.className='feedbackMsg fb-bad';
+                currentBossQIdx++;
+                setTimeout(()=>{
+                    document.getElementById('bossQuiz').style.display='none';
+                    gameState.paused=false;
+                },1500);
+            }
+        };
+        optsDiv.appendChild(btn);
+    });
+
+    document.getElementById('bossQuiz').style.display='flex';
+}
+
+function drawSkyGradient(topColor,botColor){
+    const grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,topColor);
+    grad.addColorStop(1,botColor);
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,W,H);
+}
+
+function drawDecorativeCloud(x,y,scale){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(scale,scale);
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(0,0,25,0,Math.PI*2);
+    ctx.arc(30,-10,30,0,Math.PI*2);
+    ctx.arc(60,0,25,0,Math.PI*2);
+    ctx.arc(25,10,20,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawCloudPlatform(c){
+    const sx=c.x-camera.x,sy=c.y-camera.y;
+    if(c.type==='ground'){
+        ctx.fillStyle='#c84c0c';
+        ctx.fillRect(sx,sy,c.w,c.h);
+        ctx.fillStyle='#43b047';
+        ctx.fillRect(sx,sy,c.w,8);
+        ctx.strokeStyle='#8B4513';ctx.lineWidth=1;
+        for(let r=0;r<c.h/20;r++)for(let cc=0;cc<c.w/40;cc++){
+            ctx.strokeRect(sx+cc*40+(r%2)*20,sy+r*20,40,20);
+        }
+    }else if(c.type==='platform'){
+        ctx.fillStyle='#fbd000';
+        ctx.fillRect(sx,sy,c.w,c.h);
+        ctx.strokeStyle='#b8860b';ctx.lineWidth=2;
+        ctx.strokeRect(sx,sy,c.w,c.h);
+        ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';
+        ctx.fillText('?',sx+c.w/2,sy+c.h/2+5);
+    }else if(c.type==='cloud'){
+        ctx.fillStyle=c.quizAnswered?'#aaddff':'#ffffff';
+        ctx.beginPath();
+        const cw=c.w,ch=c.h;
+        ctx.moveTo(sx+10,sy+ch);
+        ctx.quadraticCurveTo(sx-10,sy+ch/2,sx+15,sy+5);
+        ctx.quadraticCurveTo(sx+cw*0.3,sy-10,sx+cw*0.5,sy+2);
+        ctx.quadraticCurveTo(sx+cw*0.7,sy-8,sx+cw-15,sy+5);
+        ctx.quadraticCurveTo(sx+cw+10,sy+ch/2,sx+cw-10,sy+ch);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle='#87ceeb';ctx.lineWidth=2;ctx.stroke();
+
+        if(c.textIdx!==undefined&&c.textIdx>=0&&c.textIdx<CLOUD_LEVEL_DATA.length){
+            const txt=CLOUD_LEVEL_DATA[c.textIdx];
+            const preview=txt.context.substring(0,30)+'...';
+            ctx.fillStyle='#333';ctx.font='bold 11px Arial';ctx.textAlign='center';
+            ctx.fillText(preview,sx+cw/2,sy+ch/2+3);
+            if(!c.quizAnswered){
+                ctx.fillStyle='#e52521';ctx.font='bold 13px Arial';
+                ctx.fillText('❓',sx+cw/2,sy+ch/2+18);
+            }else{
+                ctx.fillStyle='#43b047';ctx.font='bold 13px Arial';
+                ctx.fillText('✓',sx+cw/2,sy+ch/2+18);
+            }
+        }
+    }else if(c.type==='goal'){
+        ctx.fillStyle='#888';ctx.fillRect(sx+c.w/2-3,sy-120,6,120+c.h);
+        ctx.fillStyle='#e52521';
+        ctx.beginPath();ctx.moveTo(sx+c.w/2+3,sy-120);ctx.lineTo(sx+c.w/2+50,sy-100);ctx.lineTo(sx+c.w/2+3,sy-80);ctx.fill();
+        ctx.fillStyle='#fbd000';ctx.beginPath();ctx.arc(sx+c.w/2,sy-120,8,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='bold 14px Arial';ctx.textAlign='center';
+        ctx.fillText('🏁 FINISH!',sx+c.w/2,sy+c.h+20);
+    }
+}
+
+function drawBackgroundForLevel(){
+    if(currentLevel===1){
+        drawSkyGradient('#1a1a4e','#5c94fc');
+        ctx.fillStyle='rgba(255,255,255,0.6)';
+        for(let i=0;i<50;i++){
+            const sx=(i*137+50)%W,sy=((i*97+20)%H)-camera.y*0.3;
+            if(sy>-10&&sy<H+10)ctx.fillRect(sx,sy,2,2);
+        }
+    }else if(currentLevel===2){
+        drawSkyGradient('#5c94fc','#87ceeb');
+        ctx.fillStyle='#43b047';
+        for(let i=0;i<10;i++){
+            const hx=i*400-camera.x*0.3;
+            ctx.beginPath();ctx.arc(hx+200,520,100,Math.PI,0);ctx.fill();
+        }
+        for(let i=0;i<8;i++){
+            drawDecorativeCloud(i*350+100-camera.x*0.15,60+(i%3)*40,0.8);
+        }
+    }else if(currentLevel===3){
+        drawSkyGradient('#87ceeb','#b8e6b8');
+        ctx.fillStyle='rgba(255,255,255,0.3)';
+        ctx.fillRect(0,0,W,H);
+        ctx.fillStyle='#d4a76a';
+        ctx.fillRect(0,520-camera.y,W,80);
+    }else if(currentLevel===4){
+        drawSkyGradient('#2c0a0a','#6b1a1a');
+        const lavaGrad=ctx.createLinearGradient(0,H-100,0,H);
+        lavaGrad.addColorStop(0,'transparent');
+        lavaGrad.addColorStop(1,'rgba(255,69,0,0.3)');
+        ctx.fillStyle=lavaGrad;
+        ctx.fillRect(0,H-100,W,100);
+    }
+}
+
+function drawRings(){
+    for(let r of rings){
+        const rx=r.x-camera.x,ry=r.y-camera.y;
+        ctx.strokeStyle='#e52521';
+        ctx.lineWidth=6;
+        ctx.beginPath();
+        ctx.arc(rx+r.w/2,ry+r.h/2,r.w/2,0,Math.PI*2);
+        ctx.stroke();
+        ctx.strokeStyle='#fbd000';
+        ctx.lineWidth=3;
+        ctx.beginPath();
+        ctx.arc(rx+r.w/2,ry+r.h/2,r.w/2-5,0,Math.PI*2);
+        ctx.stroke();
+        ctx.fillStyle='#fff';
+        ctx.font='bold 11px Arial';
+        ctx.textAlign='center';
+        ctx.shadowColor='#000';ctx.shadowBlur=3;
+        ctx.fillText(r.label,rx+r.w/2,ry+r.h/2+4);
+        ctx.shadowBlur=0;
+        if(r.thrown.length>0){
+            ctx.fillStyle='#43b047';
+            ctx.font='bold 14px Arial';
+            ctx.fillText('×'+r.thrown.length,rx+r.w/2,ry-5);
+        }
+    }
+}
+
+function drawTurtles(){
+    for(let t of turtles){
+        if(!t.alive)continue;
+        const tx=t.x-camera.x,ty=t.y-camera.y;
+        drawPixelSprite(SPRITE_TURTLE,tx,ty,t.w,false);
+        if(!t.grabbed&&!t.flying){
+            ctx.fillStyle='#fff';
+            ctx.font='bold 10px Arial';
+            ctx.textAlign='center';
+            ctx.shadowColor='#000';ctx.shadowBlur=2;
+            ctx.fillText(TURTLES_DATA[t.dataIdx].word,tx+t.w/2,ty-5);
+            ctx.shadowBlur=0;
+            const dist=Math.abs((player.x+player.w/2)-(t.x+t.w/2))+Math.abs((player.y+player.h/2)-(t.y+t.h/2));
+            if(dist<60){
+                ctx.fillStyle='#fbd000';
+                ctx.font='bold 12px Arial';
+                ctx.fillText('[E]',tx+t.w/2,ty-18);
+            }
+        }
+    }
+}
+
+function drawBoss(){
+    if(!boss)return;
+    const bx=boss.x-camera.x,by=boss.y-camera.y;
+
+    if(boss.hitFlash>0&&boss.hitFlash%4<2){
+        ctx.globalCompositeOperation='source-atop';
+    }
+
+    ctx.fillStyle='rgba(155,89,182,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(bx+boss.w/2,by+boss.h+10,boss.w*0.6,15,0,0,Math.PI*2);
+    ctx.fill();
+
+    drawPixelSprite(SPRITE_BOSS,bx,by,boss.w,false);
+
+    ctx.fillStyle='#ff0000';
+    ctx.shadowColor='#ff0000';ctx.shadowBlur=10;
+    ctx.beginPath();
+    ctx.arc(bx+boss.w*0.35,by+boss.h*0.25,6,0,Math.PI*2);
+    ctx.arc(bx+boss.w*0.65,by+boss.h*0.25,6,0,Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+
+    ctx.fillStyle='#fbd000';
+    ctx.beginPath();
+    ctx.moveTo(bx+boss.w*0.2,by);
+    ctx.lineTo(bx+boss.w*0.3,by-20);
+    ctx.lineTo(bx+boss.w*0.4,by-5);
+    ctx.lineTo(bx+boss.w*0.5,by-25);
+    ctx.lineTo(bx+boss.w*0.6,by-5);
+    ctx.lineTo(bx+boss.w*0.7,by-20);
+    ctx.lineTo(bx+boss.w*0.8,by);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle='#b8860b';ctx.lineWidth=2;ctx.stroke();
+
+    ctx.fillStyle='#fff';
+    ctx.font='bold 16px Arial';
+    ctx.textAlign='center';
+    ctx.shadowColor='#000';ctx.shadowBlur=4;
+    ctx.fillText('🐉 DRACO THE GLUTTON',bx+boss.w/2,by-30);
+    ctx.shadowBlur=0;
+}
+
+function drawMushroomBullets(){
+    for(const b of mushroomBullets){
+        ctx.save();
+        ctx.translate(b.x+b.size/2,b.y+b.size/2);
+        ctx.rotate(b.rot);
+        drawPixelSprite(SPRITE_MUSHROOM_BULLET,-b.size/2,-b.size/2,b.size,false);
+        ctx.restore();
+    }
+}
+
+function drawCandies(){
+    for(const c of candies){
+        if(c.collected)continue;
+        const bobY=c.y+Math.sin((c.bobT||0))*5;
+        const cx=c.x-camera.x,cy=bobY-camera.y;
+        drawPixelSprite(SPRITE_CANDY,cx,cy,24,false);
+        ctx.fillStyle='rgba(255,255,255,'+(0.5+Math.sin(Date.now()/200)*0.5)+')';
+        ctx.beginPath();ctx.arc(cx+12,cy+5,3,0,Math.PI*2);ctx.fill();
+    }
+}
+
+function drawGoombas(){
+    for(const g of goombas){
+        if(!g.alive)continue;
+        const gx=g.x-camera.x,gy=g.y-camera.y;
+        if(g.squished){
+            drawPixelSprite(SPRITE_GOOMBA_SQUISH,gx,gy+g.h-10,g.w,false);
+        }else{
+            drawPixelSprite(SPRITE_GOOMBA_1,gx,gy,g.w,g.vx>0);
+        }
+    }
+}
+
+function drawPlayer(){
+    if(player.invincible>0&&Math.floor(Date.now()/100)%2===0)return;
+    let sprite;
+    if(player.animState==='jump')sprite=SPRITE_MARIO_JUMP;
+    else if(player.animState==='run')sprite=player.runFrame===0?SPRITE_MARIO_RUN_1:SPRITE_MARIO_RUN_2;
+    else sprite=SPRITE_MARIO_STAND;
+    drawPixelSprite(sprite,player.x-camera.x,player.y-camera.y,player.w,!player.facingRight);
+}
+
+function render(){
+    ctx.clearRect(0,0,W,H);
+    drawBackgroundForLevel();
+
+    for(const c of clouds)drawCloudPlatform(c);
+
+    if(currentLevel===2){
+        drawCandies();
+        drawGoombas();
+    }else if(currentLevel===3){
+        drawRings();
+        drawTurtles();
+    }else if(currentLevel===4){
+        drawBoss();
+        drawMushroomBullets();
+    }
+
+    drawPlayer();
+    drawParticles();
+
+    if(currentLevel===4){
+        for(const p of particles){
+            if(p.isAttack){
+                const px=p.x-camera.x,py=p.y-camera.y;
+                ctx.fillStyle='#ff4400';
+                ctx.shadowColor='#ff0000';ctx.shadowBlur=10;
+                ctx.beginPath();ctx.arc(px,py,p.size/2,0,Math.PI*2);ctx.fill();
+                ctx.shadowBlur=0;
+            }
+        }
+    }
+
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.font='13px monospace';
+    ctx.textAlign='left';
+    if(currentLevel===1)ctx.fillText('☁️ Прыгай по облакам вверх! Избегай неправильных!',10,H-10);
+    if(currentLevel===2)ctx.fillText('🍄 Прыгай на грибов! Собирай конфеты! Беги вправо →',10,H-10);
+    if(currentLevel===3)ctx.fillText(' Подойди к черепахе → нажми E → выбери кольцо!',10,H-10);
+    if(currentLevel===4)ctx.fillText('👑 Нажимай SPACE для выстрела! Выбирай грамматику!',10,H-10);
+}
+
+function gameLoop(){
+    if(gameState.running&&!gameState.paused){
+        if(currentLevel===1)updateLevel1();
+        else if(currentLevel===2)updateLevel2();
+        else if(currentLevel===3)updateLevel3();
+        else if(currentLevel===4)updateLevel4();
+        updateParticles();
+    }
+    if(gameState.running)render();
+    requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+    currentLevel = 1;
+    currentBossQIdx = 0;
+    gameState.score = 0;
+    gameState.lives = 3;
+    gameState.running = true;
+    gameState.paused = false;
+    levelComplete = false;
+    
+    document.getElementById('startScreen').classList.add('hidden');
+    document.getElementById('endScreen').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    document.getElementById('bossHP').style.display='none';
+    document.getElementById('bossLabel').style.display='none';
+    
+    console.log('=== СТАРТ ИГРЫ ===');
+    showLevelIntro(1);
+    updateHUD();
+}
+
+requestAnimationFrame(function idle(){
+    if(!gameState.running){
+        drawSkyGradient('#5c94fc','#43b047');
+        requestAnimationFrame(idle);
+    }
+});
+gameLoop();
+</script>
+</body>
+</html>
